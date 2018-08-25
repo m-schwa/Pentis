@@ -1,0 +1,528 @@
+import java.awt.EventQueue;
+
+import javax.swing.ImageIcon;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+
+import java.awt.BorderLayout;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.GridBagLayout;
+import java.awt.Image;
+import java.awt.Point;
+
+import javax.swing.JButton;
+import javax.swing.BoxLayout;
+
+import net.miginfocom.swing.MigLayout;
+
+import java.awt.CardLayout;
+
+import javax.swing.JPanel;
+
+import java.awt.GridLayout;
+
+import javax.swing.border.LineBorder;
+
+import java.awt.Color;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Queue;
+import java.util.Stack;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.concurrent.ArrayBlockingQueue;
+
+
+public class Board{
+	
+	private Point[][] shapes = new Point[18][5];
+	private Point[] past = new Point[5];
+	private JFrame frame;
+	private JLabel[][] board;
+	private JLabel[] letters, upcomingShapes;
+	private Color[] colors;
+	private JLabel scoreLabel;
+	private JPanel panel, background;
+	private boolean[][] occupied;
+	private String[] names = {"STICK", "CACTUS", "BACTUS", "BELL", "ELL", "RIGHT THUMB", "LEFT THUMB", "BALASH", "FLASH", "T", "U", "PURP", "MATT", "FIDGET SPINNER", "LEFT AX", "RIGHT AX", "ZEBRA", "ARBEZ"};
+	Point[] test;
+	private Queue<Integer> upcoming;
+	int o;
+	int x;
+	int score = 0;
+	/**
+	 * @wbp.nonvisual location=136,341
+	 */
+
+	/**
+	 * Launch the application.
+	 */
+	public static void main(String[] args) {
+		EventQueue.invokeLater(new Runnable() {
+			public void run() {
+				try {
+					Board window = new Board();
+					window.frame.setVisible(true);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+		});
+	}
+
+	/**
+	 * Create the application.
+	 */
+	public Board() {
+		initialize();
+		
+	}
+
+	/**
+	 * Initialize the contents of the frame.
+	 */
+	private void initialize() {
+		frame = new JFrame();
+		frame.setBounds(100, 100, 500, 1000);
+		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		frame.getContentPane().setLayout(null);
+		
+		background = new JPanel(){
+			@Override
+			/**
+			 * This will draw onto the frame
+			 * 
+			 * @param g
+			 */
+			public void paintComponent(Graphics g){
+				Graphics2D g2 = (Graphics2D) g;
+				
+				g2.setColor(Color.black);
+				g2.fillRect(0, 0, 500, 1000);
+
+				ImageIcon p = new ImageIcon("p.png");
+				Image pImage = p.getImage();
+				int x = 130;
+				g2.drawImage(pImage, x, 15, null);
+				x += 37;
+				ImageIcon e = new ImageIcon("e.png");
+				Image eImage = e.getImage();
+				g2.drawImage(eImage, x, 15, null);
+				x += 38;
+				ImageIcon n = new ImageIcon("n.png");
+				Image nImage = n.getImage();
+				g2.drawImage(nImage, x, 15, null);
+				x += 53;
+				ImageIcon t = new ImageIcon("t.png");
+				Image tImage = t.getImage();
+				g2.drawImage(tImage, x, 15, null);
+				x += 39;
+				ImageIcon i = new ImageIcon("i.png");
+				Image iImage = i.getImage();
+				g2.drawImage(iImage, x, 15, null);
+				x += 35;
+				ImageIcon s = new ImageIcon("s.png");
+				Image sImage = s.getImage();
+				g2.drawImage(sImage, x, 15, null);
+			}
+		};
+		panel = new JPanel();
+		panel.setBounds(100, 100, 300, 678);
+		frame.add(panel);
+		panel.setLayout(new GridLayout(25,13,0,0));
+		background.setBounds(0, 0, 500, 1000);
+		frame.add(background);
+		
+		board = new JLabel[25][13];
+		for(int i = 0; i < 25; i++){
+			for(int j = 0; j < 13; j++){
+				board[i][j] = new JLabel();
+				board[i][j].setBorder(new LineBorder(Color.black));
+				board[i][j].setOpaque(true);
+				board[i][j].setBackground(Color.white);
+			}
+		}
+		updateBoard();
+		
+		scoreLabel = new JLabel("Score: " + score);
+		scoreLabel.setBounds(20, 0, 100, 100);
+		scoreLabel.setForeground(Color.white);
+		background.setLayout(null);
+		background.add(scoreLabel);
+
+		upcomingShapes = new JLabel[3];
+		createShapes();
+		upcoming = new ArrayBlockingQueue<Integer>(100);
+		o = (int)(Math.random() * 18);
+		upcoming.add(o);
+		upcomingShapes[0] = new JLabel();
+		upcomingShapes[0].setText(names[upcoming.peek()]);
+		o = (int)(Math.random() * 18);
+		upcoming.add(o);
+		upcomingShapes[1] = new JLabel();
+		upcomingShapes[1].setText(names[upcoming.peek()]);
+		o = (int)(Math.random() * 18);
+		upcoming.add(o);
+		upcomingShapes[2] = new JLabel();
+		upcomingShapes[2].setText(names[upcoming.peek()]);
+		x = upcoming.remove();
+		
+		int y = 0;
+		for(int i = 0; i < 3; i++){
+			upcomingShapes[i].setBounds(100, 100, 100, y);
+			upcomingShapes[i].setOpaque(true);
+			frame.add(upcomingShapes[i]);
+			y+=100;
+		}
+			
+		
+		
+
+		for(int i = 0; i < 5; i++){
+			past[i] = new Point(0,0);
+		}
+		
+		occupied = new boolean[board.length][board[0].length];
+		for(int i = 0; i < board.length; i++){
+			for(int j = 0; j < board[0].length; j++){
+				occupied[i][j] = false;
+			}
+		}
+		
+		test = new Point[5];
+		test[0] = new Point(3, 0);
+		test[1] = new Point(4, 0);
+		test[2] = new Point(5, 0);
+		test[3] = new Point(6, 0);
+		test[4] = new Point(7, 0);
+		
+		frame.getContentPane().setBackground(Color.black);
+		
+		
+		Timer timer = new Timer();
+		TimerTask task = new TimerTask() {
+			public void run(){
+				boolean lose = false;
+				for(int i = 0; i < 13; i++){
+					if(occupied[0][i])
+							lose = true;
+				}
+				if(canMove(shapes[x]) && !lose){
+						for(int i = 0; i < 5; i++){
+							board[past[i].y][past[i].x].setBackground(Color.white);
+						}
+						for(int i = 0; i < 5; i++){
+							board[shapes[x][i].y][shapes[x][i].x].setBackground(colors[x]);
+						}
+
+						for(int i = 0; i < 5; i++){
+							past[i] = new Point(shapes[x][i].x,shapes[x][i].y);
+						}
+
+						for(int i = 0; i < 5; i++){
+							shapes[x][i].y++;
+						}
+						
+					}
+				else if(!lose){
+					createShapes();
+					boolean complete = true;
+					for(int i = 0; i < 5; i++)
+						occupied[past[i].y][past[i].x] = true;
+					score += x*5;
+					for(int i = 0; i < 5; i++){
+						for(int j = 0; j < 13; j++)
+							if(!occupied[past[i].y][j])
+								complete = false;
+						if(complete){
+							score += 1000;
+							for(int j = 0; j < 13; j++){
+								occupied[past[i].y][j] = false;
+								board[past[i].y][j].setBackground(Color.white);
+							}
+							for(int j = 0; j < 13; j++){
+								for(int s = past[i].y - 1; s > 0; s--){
+									if(occupied[s][j]){
+										occupied[s][j] = false;
+										board[s + 1][j].setBackground(board[s][j].getBackground());
+										board[s][j].setBackground(Color.white);
+										occupied[s + 1][j] = true;
+									}
+								}
+							}
+						}
+						complete = true;
+						past[i] = new Point(0,0);
+						scoreLabel.setText("Score: " + score);
+					}
+					
+					o = (int)(Math.random() * 18);
+					changeUpcoming(o);
+					upcoming.add(o);
+					x = upcoming.remove();
+				}
+			}
+
+		};
+		timer.scheduleAtFixedRate(task, 3000, 200);
+		frame.addKeyListener(new KeyListener(){
+			
+			@Override
+			public void keyPressed(KeyEvent e) {
+			// TODO Auto-generated method stub
+				//System.out.println(KeyEvent.VK_LEFT);
+				if(e.getKeyCode() == KeyEvent.VK_LEFT){
+					boolean canMove = true;
+					for(int i = 0; i < 5; i++)
+						if(shapes[x][i].x <= 0)
+							canMove = false;
+					if(canMove)
+						for(int i = 0; i < 5; i++)
+							shapes[x][i].x--;
+					
+				}
+				if(e.getKeyCode() == KeyEvent.VK_RIGHT){
+					boolean canMove = true;
+					for(int i = 0; i < 5; i++)
+						if(shapes[x][i].x >= 12)
+							canMove = false;
+					if(canMove)
+						for(int i = 0; i < 5; i++)
+							shapes[x][i].x++;
+				}
+				if(e.getKeyCode() == KeyEvent.VK_UP){
+					shapes[x] = rotate(shapes[x]);
+				}
+			}
+
+			@Override
+			public void keyReleased(KeyEvent e) {
+			// TODO Auto-generated method stub
+			}
+
+			@Override
+			public void keyTyped(KeyEvent e) {
+				// TODO Auto-generated method stub
+			}
+		});
+		frame.setVisible(true);
+	}
+
+	private void updateBoard(){
+		panel.removeAll();
+		for(int i = 0; i < 25; i++){
+			for(int j = 0; j < 13; j++){
+				panel.add(board[i][j]);
+			}
+		}
+	}
+	
+	private void createShapes(){
+		
+		colors = new Color[18];
+		colors[0] = new Color(112, 214, 255);
+		colors[1] = new Color(255, 112, 166);
+		colors[2] = new Color(255, 151, 112);
+		colors[3] = new Color(255, 214, 112);
+		colors[4] = new Color(233, 255, 112);
+		colors[5] = new Color(126, 127, 154);
+		colors[6] = new Color(10, 36, 99);
+		colors[7] = new Color(251, 54, 64);
+		colors[8] = new Color(67, 151, 117);
+		colors[9] = new Color(19, 27, 35);
+		colors[10] = new Color(191, 192, 192);
+		colors[11] = new Color(255, 250, 0);
+		colors[12] = new Color(220, 149, 150);
+		colors[13] = new Color(255, 221, 74);
+		colors[14] = new Color(125, 207, 182);
+		colors[15] = new Color(182, 198, 73);
+		colors[16] = new Color(221, 189, 213);
+		colors[17] = new Color(23, 190, 187);
+		
+		//stick
+		int x = (int)(Math.random() * 9);
+		shapes[0][0] = new Point(x, 0);
+		shapes[0][1] = new Point(x + 1, 0);
+		shapes[0][2] = new Point(x + 2, 0);
+		shapes[0][3] = new Point(x + 3, 0);
+		shapes[0][4] = new Point(x + 4, 0);
+		
+		//cactus
+		x = (int)(Math.random() * 11 + 2);
+		shapes[1][0] = new Point(x, 0);
+		shapes[1][1] = new Point(x - 1, 0);
+		shapes[1][2] = new Point(x - 1, 1);
+		shapes[1][3] = new Point(x - 2, 1);
+		shapes[1][4] = new Point(x - 1, 2);
+		
+		//bactus
+		x = (int)(Math.random() * 11);
+		shapes[2][0] = new Point(x, 0);
+		shapes[2][1] = new Point(x + 1, 0);
+		shapes[2][2] = new Point(x + 1, 1);
+		shapes[2][3] = new Point(x + 2, 1);
+		shapes[2][4] = new Point(x + 1, 2);
+		
+		//bell
+		x = (int)(Math.random() * 10);
+		shapes[3][0] = new Point(x, 0);
+		shapes[3][1] = new Point(x + 1, 0);
+		shapes[3][2] = new Point(x + 2, 0);
+		shapes[3][3] = new Point(x + 3, 0);
+		shapes[3][4] = new Point(x + 3, 1);
+		
+		//ell
+		x = (int)(Math.random() * 10 + 3);
+		shapes[4][0] = new Point(x, 0);
+		shapes[4][1] = new Point(x - 1, 0);
+		shapes[4][2] = new Point(x - 2, 0);
+		shapes[4][3] = new Point(x - 3, 0);
+		shapes[4][4] = new Point(x - 3, 1);
+		
+		//right thumb
+		x = (int)(Math.random() * 11 + 2);
+		shapes[5][0] = new Point(x, 0);
+		shapes[5][1] = new Point(x - 1, 1);
+		shapes[5][2] = new Point(x - 1, 0);
+		shapes[5][3] = new Point(x - 2, 0);
+		shapes[5][4] = new Point(x - 2, 1);
+		
+		//left thumb
+		x = (int)(Math.random() * 11);
+		shapes[6][0] = new Point(x, 0);
+		shapes[6][1] = new Point(x + 1, 1);
+		shapes[6][2] = new Point(x + 1, 0);
+		shapes[6][3] = new Point(x + 2, 0);
+		shapes[6][4] = new Point(x + 2, 1);
+		
+		//balash
+		x = (int)(Math.random() * 10);
+		shapes[7][0] = new Point(x, 0);
+		shapes[7][1] = new Point(x + 1, 0);
+		shapes[7][2] = new Point(x + 2, 0);
+		shapes[7][3] = new Point(x + 2, 1);
+		shapes[7][4] = new Point(x + 3, 1);
+	
+		//flash
+		x = (int)(Math.random() * 10 + 3);
+		shapes[8][0] = new Point(x, 0);
+		shapes[8][1] = new Point(x - 1, 0);
+		shapes[8][2] = new Point(x - 2, 0);
+		shapes[8][3] = new Point(x - 2, 1);
+		shapes[8][4] = new Point(x - 3, 1);
+	
+		//T
+		x = (int)(Math.random() * 11);
+		shapes[9][0] = new Point(x, 0);
+		shapes[9][1] = new Point(x + 2, 0);
+		shapes[9][2] = new Point(x + 1, 0);
+		shapes[9][3] = new Point(x + 1, 1);
+		shapes[9][4] = new Point(x + 1, 2);
+		
+		//U
+		x = (int)(Math.random() * 11);
+		shapes[10][0] = new Point(x, 0);
+		shapes[10][1] = new Point(x, 1);
+		shapes[10][2] = new Point(x + 1, 1);
+		shapes[10][3] = new Point(x + 2, 1);
+		shapes[10][4] = new Point(x + 2, 0);
+		
+		//Purp
+		x = (int)(Math.random() * 11);
+		shapes[11][0] = new Point(x, 0);
+		shapes[11][1] = new Point(x + 1, 0);
+		shapes[11][2] = new Point(x + 2, 0);
+		shapes[11][3] = new Point(x + 2, 1);
+		shapes[11][4] = new Point(x + 2, 2);
+		
+		//matt
+		x = (int)(Math.random() * 11);
+		shapes[12][0] = new Point(x, 0);
+		shapes[12][1] = new Point(x + 1, 0);
+		shapes[12][2] = new Point(x + 1, 1);
+		shapes[12][3] = new Point(x + 2, 1);
+		shapes[12][4] = new Point(x + 2, 2);
+		
+		//fidget spinner
+		x = (int)(Math.random() * 11);
+		shapes[13][0] = new Point(x, 1);
+		shapes[13][1] = new Point(x + 1, 0);
+		shapes[13][2] = new Point(x + 1, 1);
+		shapes[13][3] = new Point(x + 1, 2);
+		shapes[13][4] = new Point(x + 2, 1);
+		
+		//left ax
+		x = (int)(Math.random() * 10);
+		shapes[14][0] = new Point(x, 0);
+		shapes[14][1] = new Point(x + 1, 1);
+		shapes[14][2] = new Point(x + 1, 0);
+		shapes[14][3] = new Point(x + 2, 0);
+		shapes[14][4] = new Point(x + 3, 0);
+		
+		//right ax
+		x = (int)(Math.random() * 10);
+		shapes[15][0] = new Point(x, 0);
+		shapes[15][1] = new Point(x + 1, 0);
+		shapes[15][2] = new Point(x + 2, 0);
+		shapes[15][3] = new Point(x + 2, 1);
+		shapes[15][4] = new Point(x + 3, 0);
+		
+		//zebra
+		x = (int)(Math.random() * 11);
+		shapes[16][0] = new Point(x, 0);
+		shapes[16][1] = new Point(x, 1);
+		shapes[16][2] = new Point(x + 1, 1);
+		shapes[16][3] = new Point(x + 2, 1);
+		shapes[16][4] = new Point(x + 2, 2);
+		
+		//arbez
+		x = (int)(Math.random() * 11 + 3);
+		shapes[17][0] = new Point(x, 0);
+		shapes[17][1] = new Point(x, 1);
+		shapes[17][2] = new Point(x - 1, 1);
+		shapes[17][3] = new Point(x - 2, 1);
+		shapes[17][4] = new Point(x - 2, 2);
+	}
+	
+	private Point[] rotate(Point[] shape){
+		int x;
+		int y;
+		Point[] p = new Point[5];
+		for(int i = 0; i < 5; i++){
+			p[i] = new Point(0,0);
+			p[i].x = shape[2].x + (shape[2].y - shape[i].y);
+			if(p[i].x < 0 || p[i].x > 12)
+				return shape;
+			p[i].y = shape[2].y - (shape[2].x - shape[i].x);
+			if(p[i].y < 0 || p[i].y > 23)
+				return shape;
+			if(occupied[p[i].y][p[i].x] || occupied[p[i].y + 1][p[i].x])
+				return shape;
+		}
+		return p;
+	}
+	
+	private boolean canMove(Point[] shape){
+		for(int i = 0; i < 5; i++)
+			if(shapes[x][i].y >= 25)
+				return false;
+		for(int i = 0; i < 5; i++)
+			if(occupied[shapes[x][i].y][shapes[x][i].x])
+				return false;
+		return true;
+	}
+	
+	private Point[] getPoints(){
+		return null;
+	}
+	
+	private void changeUpcoming(int x){
+		upcomingShapes[0].setText(upcomingShapes[1].getText());
+		upcomingShapes[1].setText(upcomingShapes[2].getText());
+		upcomingShapes[2].setText(names[x]);
+	}
+}
+
